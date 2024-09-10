@@ -1,0 +1,5 @@
+mcrcon
+mcstatus
+pyqt5
+pyinstaller
+pyqtdeploy

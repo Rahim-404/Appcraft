@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>icon.ico</file>
+        <file>online.ico</file>
+        <file>offline.ico</file>
+        <file>player_joined.ico</file>
+    </qresource>
+</RCC>
