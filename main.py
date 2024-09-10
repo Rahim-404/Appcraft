@@ -1,14 +1,37 @@
 import sys
 import argparse
+import asyncio
 
 from PyQt5.QtWidgets import QSystemTrayIcon,QMenu,QApplication,QWidget
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QTimer,QMimeData
+from PyQt5.QtCore import QTimer,QMimeData,QThread,pyqtSignal
 
 from mcrcon import MCRcon
 from mcstatus import JavaServer
 
 from data.icons_rc import *
+
+class AsyncTimer(QThread):
+    signal = pyqtSignal()
+    def __init__(self,interval):
+        super().__init__()
+        self.interval = interval
+        self.running = False
+
+    async def run_async(self):
+        while self.running :
+            await asyncio.sleep(self.interval)
+            self.signal.emit()
+
+    def run(self):
+        self.running = True
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(self.run_async())
+
+    def stop(self):
+        self.running = False
+
 
 class SystemTrayIcon(QSystemTrayIcon):
     def __init__(self, icon,host,port,parent=None):
@@ -20,6 +43,9 @@ class SystemTrayIcon(QSystemTrayIcon):
 
         self.server = JavaServer.lookup("{}:{}".format(host,port))
 
+        self.async_timer = AsyncTimer(2)
+        self.async_timer.signal.connect(self.fill)
+
         self.messageClicked.connect(self.messageCleared)
         self.activated.connect(self.activatedCb)
 
@@ -27,12 +53,6 @@ class SystemTrayIcon(QSystemTrayIcon):
         self.player_init = False
         self.is_open = False
         self.notificated = False
-        
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.fill)
-        self.timer.start(2000) 
-
-        
         self.menu = QMenu(parent)
         
         self.hostAction = self.menu.addAction("{}:{}".format(host,port))
@@ -57,6 +77,8 @@ class SystemTrayIcon(QSystemTrayIcon):
         self.setContextMenu(self.menu)
         for action in self.actions :
             self.setInVisible(action)
+
+        self.async_timer.start()
 
     def activatedCb(self):
         print("activated")
@@ -153,8 +175,9 @@ class SystemTrayIcon(QSystemTrayIcon):
     
 
     def destroy_app(self):
-        self.timer.stop()
-        QApplication.quit()
+        self.async_timer.stop()
+        #QApplication.quit()
+        sys.exit()
 
 def get_parser():
     parser = argparse.ArgumentParser(
