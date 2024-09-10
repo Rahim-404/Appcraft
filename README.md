@@ -9,10 +9,11 @@ build icons
 ```cd data```
 ```pyrcc5 icons.qrc -o icons_rc.py```
 
-deploy :
-```chmod +x build.sh ```
-```./build.sh ```
+deploy using (nuitka) :
+```nuitka main.py --follow-imports --output-dir=build --show-progress --standalone --onefile --plugin-enable=pyqt5 --include-qt-plugins=sensible,styles --output-file=appcraft```
 
-using :
-```cd build/release```
-```./appcraft -h example -p 25565```
+or (pyinstaller):
+```pyinstaller --onefile --windowed --strip --icon=data/icon.ico --distpath=release --name appcraft --hidden-import pyqt5 main.py```
+
+using (default port 25565):
+```appcraft --host example ```

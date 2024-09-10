@@ -4,7 +4,7 @@ import asyncio
 
 from PyQt5.QtWidgets import QSystemTrayIcon,QMenu,QApplication,QWidget
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QTimer,QMimeData,QThread,pyqtSignal
+from PyQt5.QtCore import QThread,pyqtSignal
 
 from mcrcon import MCRcon
 from mcstatus import JavaServer

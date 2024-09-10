@@ -1,5 +1,2 @@
 #!/bin/bash
-mkdir build
-cd  build
-pyinstaller --onefile --windowed --strip --icon=icon.ico --distpath=release --name appcraft --hidden-import pyside6 ../main.py
-#pyinstaller --onefile --windowed --icon=icon.ico --distpath=release --name appcraft ../main.py
+nuitka main.py --follow-imports --output-dir=build --show-progress --standalone --onefile --plugin-enable=pyqt5 --include-qt-plugins=sensible,styles --output-file=appcraft
