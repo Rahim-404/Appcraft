@@ -11,17 +11,28 @@ from mcstatus import JavaServer
 
 from data.icons_rc import *
 
-class AsyncTimer(QThread):
-    signal = pyqtSignal()
-    def __init__(self,interval):
+class AsyncThread(QThread):
+    status_signal = pyqtSignal(dict)
+    def __init__(self,server,interval):
         super().__init__()
         self.interval = interval
+        self.server = server
         self.running = False
 
     async def run_async(self):
         while self.running :
+            data = {"status":"offline"}
+            try:
+                status = await self.server.async_status(timeout=1)
+                data["status"]="online"
+                data["online_players"] = status.players.online
+                data["max_players"] = status.players.max
+                data["version"] = status.version.name
+                data["latency"] = status.latency
+                self.status_signal.emit(status)
+            except Exception as e:
+                self.status_signal.emit(data)
             await asyncio.sleep(self.interval)
-            self.signal.emit()
 
     def run(self):
         self.running = True
@@ -43,8 +54,8 @@ class SystemTrayIcon(QSystemTrayIcon):
 
         self.server = JavaServer.lookup("{}:{}".format(host,port))
 
-        self.async_timer = AsyncTimer(2)
-        self.async_timer.signal.connect(self.fill)
+        self.async_timer = AsyncThread(self.server,2)
+        self.async_timer.status_signal.connect(self.fill)
 
         self.messageClicked.connect(self.messageCleared)
         self.activated.connect(self.activatedCb)
@@ -90,71 +101,45 @@ class SystemTrayIcon(QSystemTrayIcon):
         data = "{}:{}".format(self.host,self.port)
         pass
 
-    def fill(self):
-        try :
-            status = self.server.status()
-
+    def fill(self,status):
+        if status["status"]=="online":
             self.notificated = False
             if self.is_open == False :
                 self.is_open = True
                 self.showMessage("Appcraft","server is online",QIcon(":/icons/online.ico"))
                 self.setIcon(QIcon(":/icons/online.ico"))
 
-            players_online = status.players.online
-
-            """
-            players = status.players.sample
-
-            if players != None :
-                max_palyers = 3
-                index = 0
-                players_count = len(players)
-                players_string = ""
-                for player in players :
-                    players_string += player.name
-                    if not (players[:-1] == player):
-                        players_string += ","
-                    index +=1
-                    if index == max_palyers :
-                        break
-                
-                if len(players) > max_palyers :
-                    players_string = " and others"
-                
-                self.playersOnlineAction.setToolTip(players_string)
-            else :
-                self.playersOnlineAction.setToolTip("No player connected")
-            """
+            online_players = status["online_players"]
             
-            if self.players != players_online :
-                diff = players_online - self.players
+            if self.players != online_players :
+                diff = online_players - self.players
                 if diff>0:
-                    if players_online == 1 :
+                    if online_players == 1 :
                         self.showMessage("Appcraft","1 player online",QIcon(":/icons/player_joined.ico"))
                     else :
                         if self.player_init == False :
-                            self.showMessage("Appcraft","{} players online".format(players_online),QIcon(":/icons/player_joined.ico"))
+                            self.showMessage("Appcraft","{} players online".format(online_players),QIcon(":/icons/player_joined.ico"))
                         else :
-                            self.showMessage("Appcraft","{} player(s) joind and {} players online".format(diff,players_online),QIcon(":/icons/player_joined.ico"))
+                            self.showMessage("Appcraft","{} player(s) joind and {} players online".format(diff,online_players),QIcon(":/icons/player_joined.ico"))
                 else :
-                    self.showMessage("Appcraft","{} player(s) left and {} players online".format(diff*(-1),players_online),QIcon(":/icons/player_joined.ico"))
-                self.players = players_online
+                    self.showMessage("Appcraft","{} player(s) left and {} players online".format(diff*(-1),online_players),QIcon(":/icons/player_joined.ico"))
+                self.players = online_players
                 self.player_init = True
                 
 
-            version = status.version.name
-            max_players = status.players.max
-            latency = status.latency
+            version = status["version"]
+            max_players = status["max_players"]
+            latency = status["latency"]
 
             self.serverStateAction.setText("Online")
-            self.playersOnlineAction.setText("Players online {}/{}".format(players_online,max_players))
+            self.playersOnlineAction.setText("Players online {}/{}".format(online_players,max_players))
             self.versionAction.setText("Version : {}".format(version))
             self.latencyAction.setText("Latency : {}".format(int(latency)))
             self.setInVisible(self.errorActionLabel)
             for action in self.actions :
                 self.setVisible(action)
 
-        except :
+        elif status["status"] == "offline" :
             self.is_open = False
             if self.notificated == False:
                 self.showMessage("Appcraft","server is offline",QIcon(":/icons/offline.ico"))
