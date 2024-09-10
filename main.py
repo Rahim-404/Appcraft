@@ -24,6 +24,7 @@ class SystemTrayIcon(QSystemTrayIcon):
         self.activated.connect(self.activatedCb)
 
         self.players = 0
+        self.player_init = False
         self.is_open = False
         self.notificated = False
         
@@ -106,12 +107,17 @@ class SystemTrayIcon(QSystemTrayIcon):
             if self.players != players_online :
                 diff = players_online - self.players
                 if diff>0:
-                    if diff == 1 :
-                        self.showMessage("Appcraft","1 player online".format(diff),QIcon(":/icons/player_joined.ico"))
+                    if players_online == 1 :
+                        self.showMessage("Appcraft","1 player online",QIcon(":/icons/player_joined.ico"))
                     else :
-                        self.showMessage("Appcraft","{} players online".format(diff),QIcon(":/icons/player_joined.ico"))
-
+                        if self.player_init == False :
+                            self.showMessage("Appcraft","{} players online".format(players_online),QIcon(":/icons/player_joined.ico"))
+                        else :
+                            self.showMessage("Appcraft","{} player(s) joind and {} players online".format(diff,players_online),QIcon(":/icons/player_joined.ico"))
+                else :
+                    self.showMessage("Appcraft","{} player(s) left and {} players online".format(diff*(-1),players_online),QIcon(":/icons/player_joined.ico"))
                 self.players = players_online
+                self.player_init = True
                 
 
             version = status.version.name
