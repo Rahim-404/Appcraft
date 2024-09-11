@@ -23,7 +23,7 @@ class AsyncThread(QThread):
         while self.running :
             data = {"status":"offline"}
             try:
-                status = await self.server.async_status(timeout=1)
+                status = await self.server.async_status()
                 data["status"]="online"
                 data["online_players"] = status.players.online
                 data["max_players"] = status.players.max
